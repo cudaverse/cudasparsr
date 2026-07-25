@@ -6,12 +6,98 @@
   invisible(x)
 }
 
+.validate_sparse_dimnames <- function(value, shape, argument = "dimnames") {
+  if (is.null(value)) {
+    return(NULL)
+  }
+  if (!is.list(value) || length(value) != length(shape)) {
+    stop(
+      sprintf(
+        "`%s` must be NULL or a list with one entry per sparse dimension.",
+        argument
+      ),
+      call. = FALSE
+    )
+  }
+
+  result <- vector("list", length(shape))
+  for (index in seq_along(shape)) {
+    labels <- value[[index]]
+    if (is.null(labels)) {
+      next
+    }
+    if (!is.character(labels) || !is.null(dim(labels)) ||
+        length(labels) != shape[[index]]) {
+      stop(
+        sprintf(
+          "Each non-NULL `%s` entry must be a character vector matching its sparse dimension.",
+          argument
+        ),
+        call. = FALSE
+      )
+    }
+    result[[index]] <- labels
+  }
+  if (!is.null(names(value))) {
+    names(result) <- names(value)
+  }
+  result
+}
+
+.sparse_dimnames <- function(x) {
+  .validate_sparse_dimnames(x$dimnames, x$shape)
+}
+
+.sparse_axis_name <- function(value, index) {
+  if (is.null(value) || is.null(names(value))) {
+    return(NULL)
+  }
+  names(value)[[index]]
+}
+
+.meaningful_sparse_axis_name <- function(value) {
+  !is.null(value) && (is.na(value) || nzchar(value))
+}
+
+.sparse_product_dimnames <- function(x, y_dimnames) {
+  x_dimnames <- .sparse_dimnames(x)
+  x_inner <- if (is.null(x_dimnames)) NULL else x_dimnames[[2L]]
+  y_inner <- if (is.null(y_dimnames)) NULL else y_dimnames[[1L]]
+  if (!is.null(x_inner) && !is.null(y_inner) &&
+      !identical(x_inner, y_inner)) {
+    stop(
+      "Sparse and dense inner dimension names are incompatible.",
+      call. = FALSE
+    )
+  }
+
+  labels <- list(
+    if (is.null(x_dimnames)) NULL else x_dimnames[[1L]],
+    if (is.null(y_dimnames)) NULL else y_dimnames[[2L]]
+  )
+  x_axis <- .sparse_axis_name(x_dimnames, 1L)
+  y_axis <- .sparse_axis_name(y_dimnames, 2L)
+  has_axis_names <- .meaningful_sparse_axis_name(x_axis) ||
+    .meaningful_sparse_axis_name(y_axis)
+  if (has_axis_names) {
+    names(labels) <- c(
+      if (.meaningful_sparse_axis_name(x_axis)) x_axis else "",
+      if (.meaningful_sparse_axis_name(y_axis)) y_axis else ""
+    )
+  }
+  if (all(vapply(labels, is.null, logical(1))) && !has_axis_names) {
+    return(NULL)
+  }
+  labels
+}
+
 .triplet_matrix <- function(x) {
   Matrix::sparseMatrix(
     i = x$i,
     j = x$j,
     x = x$values,
     dims = x$shape,
+    dimnames = .sparse_dimnames(x),
     giveCsparse = TRUE
   )
 }
@@ -45,8 +131,9 @@
 #'
 #' @return A `cudasparse` list. Stable public metadata include one-based COO
 #'   `i` and `j`, numeric `values`, zero-based CSR `row_ptr` and `col_index`,
-#'   integer `shape`, logical `format`, actual `device`, and `backend`.
-#'   `storage` is backend-internal and should not be accessed directly.
+#'   integer `shape`, matrix `dimnames`, logical `format`, actual `device`, and
+#'   `backend`. `storage` is backend-internal and should not be accessed
+#'   directly.
 #' @export
 #' @examples
 #' library(Matrix)
@@ -62,6 +149,7 @@ cuda_sparse <- function(x, format = c("csr", "coo"),
     stop("`drop_zeros` must be TRUE or FALSE.", call. = FALSE)
   }
   if (inherits(x, "cudasparse")) {
+    input_dimnames <- .sparse_dimnames(x)
     if (device == "auto") {
       device <- if (cudatensr::cuda_available()) "cuda" else "cpu"
     }
@@ -69,6 +157,8 @@ cuda_sparse <- function(x, format = c("csr", "coo"),
       return(x)
     }
     x <- .triplet_matrix(x)
+  } else {
+    input_dimnames <- NULL
   }
   if (!(is.matrix(x) || methods::is(x, "Matrix"))) {
     stop("`x` must be a numeric matrix or a `Matrix` sparse matrix.",
@@ -76,6 +166,13 @@ cuda_sparse <- function(x, format = c("csr", "coo"),
   }
   if (is.matrix(x) && !is.numeric(x)) {
     stop("`x` must contain numeric values.", call. = FALSE)
+  }
+  if (is.null(input_dimnames)) {
+    input_dimnames <- .validate_sparse_dimnames(
+      dimnames(x),
+      dim(x),
+      "dimnames(x)"
+    )
   }
   if (device == "auto") {
     device <- if (cudatensr::cuda_available()) "cuda" else "cpu"
@@ -114,6 +211,11 @@ cuda_sparse <- function(x, format = c("csr", "coo"),
     stop("`x` must contain finite, non-missing values.", call. = FALSE)
   }
   shape <- as.integer(dim(sparse))
+  input_dimnames <- .validate_sparse_dimnames(
+    input_dimnames,
+    shape,
+    "dimnames(x)"
+  )
   row_ptr <- c(0L, cumsum(tabulate(i, nbins = shape[[1]])))
   col_index <- j - 1L
 
@@ -132,6 +234,7 @@ cuda_sparse <- function(x, format = c("csr", "coo"),
       row_ptr = as.integer(row_ptr),
       col_index = as.integer(col_index),
       shape = shape,
+      dimnames = input_dimnames,
       format = format,
       device = device,
       backend = backend,
@@ -159,6 +262,17 @@ sparse_info <- function(x) {
     device = x$device,
     backend = x$backend
   )
+}
+
+#' Inspect sparse matrix dimension labels
+#'
+#' @param x A `cudasparse` matrix.
+#' @return `NULL` for an unnamed matrix, otherwise its row and column names,
+#'   following base R `dimnames()` semantics.
+#' @export
+dimnames.cudasparse <- function(x) {
+  .check_sparse(x)
+  .sparse_dimnames(x)
 }
 
 #' Convert sparse storage format
@@ -224,6 +338,12 @@ sparse_matmul_dense <- function(x, y) {
     stop("Sparse and dense dimensions are not conformable.",
          call. = FALSE)
   }
+  y_dimnames <- .validate_sparse_dimnames(
+    dimnames(y_cpu),
+    y_shape,
+    "dimnames(y)"
+  )
+  result_dimnames <- .sparse_product_dimnames(x, y_dimnames)
 
   if (x$device == "cuda") {
     dense_gpu <- torch::torch_tensor(
@@ -236,6 +356,8 @@ sparse_matmul_dense <- function(x, y) {
   } else {
     result <- as.matrix(.triplet_matrix(x) %*% y_cpu)
   }
+  dim(result) <- c(x$shape[[1]], y_shape[[2]])
+  dimnames(result) <- result_dimnames
   cudatensr::cuda_tensor(result, device = "cpu", dtype = "float64")
 }
 
@@ -254,9 +376,17 @@ sparse_matvec <- function(x, y) {
     stop("`y` must be a finite numeric vector with one value per column.",
          call. = FALSE)
   }
-  as.vector(cudatensr::to_cpu(
-    sparse_matmul_dense(x, matrix(y, ncol = 1L))
-  ))
+  dense <- matrix(
+    as.numeric(y),
+    ncol = 1L,
+    dimnames = list(names(y), NULL)
+  )
+  result <- as.vector(cudatensr::to_cpu(sparse_matmul_dense(x, dense)))
+  sparse_dimnames <- .sparse_dimnames(x)
+  if (!is.null(sparse_dimnames) && !is.null(sparse_dimnames[[1L]])) {
+    names(result) <- sparse_dimnames[[1L]]
+  }
+  result
 }
 
 #' Sparse row and column reductions
@@ -270,14 +400,24 @@ sparse_matvec <- function(x, y) {
 #' sparse_col_sums(x)
 sparse_row_sums <- function(x) {
   .check_sparse(x)
-  as.numeric(Matrix::rowSums(.triplet_matrix(x)))
+  result <- as.numeric(Matrix::rowSums(.triplet_matrix(x)))
+  sparse_dimnames <- .sparse_dimnames(x)
+  if (!is.null(sparse_dimnames) && !is.null(sparse_dimnames[[1L]])) {
+    names(result) <- sparse_dimnames[[1L]]
+  }
+  result
 }
 
 #' @rdname sparse_row_sums
 #' @export
 sparse_col_sums <- function(x) {
   .check_sparse(x)
-  as.numeric(Matrix::colSums(.triplet_matrix(x)))
+  result <- as.numeric(Matrix::colSums(.triplet_matrix(x)))
+  sparse_dimnames <- .sparse_dimnames(x)
+  if (!is.null(sparse_dimnames) && !is.null(sparse_dimnames[[2L]])) {
+    names(result) <- sparse_dimnames[[2L]]
+  }
+  result
 }
 
 #' @export

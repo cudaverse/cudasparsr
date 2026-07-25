@@ -8,6 +8,7 @@ reference:
   contents:
   - cuda_sparse
   - sparse_info
+  - dimnames.cudasparse
   - as_coo
   - to_dgCMatrix
 - title: Sparse operations
