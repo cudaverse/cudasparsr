@@ -6,6 +6,8 @@
   : Create a GPU-aware sparse matrix
 - [`sparse_info()`](https://cudaverse.github.io/cudasparsr/reference/sparse_info.md)
   : Inspect sparse matrix metadata
+- [`dimnames(`*`<cudasparse>`*`)`](https://cudaverse.github.io/cudasparsr/reference/dimnames.cudasparse.md)
+  : Inspect sparse matrix dimension labels
 - [`as_coo()`](https://cudaverse.github.io/cudasparsr/reference/as_coo.md)
   [`as_csr()`](https://cudaverse.github.io/cudasparsr/reference/as_coo.md)
   : Convert sparse storage format

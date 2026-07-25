@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">cudasparsr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,6 +59,7 @@
 <li>Sparse matrix-vector multiplication.</li>
 <li>Sparse-by-dense matrix multiplication.</li>
 <li>Row and column sums.</li>
+<li>Preservation of row and column identifiers through COO/CSR conversion, <code>Matrix</code> round-trips, sparse products, and reductions.</li>
 <li>Transparent CPU backend for development and CI.</li>
 <li>Optional CUDA COO multiplication through the public R torch sparse API.</li>
 </ul>
@@ -86,6 +87,7 @@
 <span></span>
 <span><span class="va">dense</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">500</span> <span class="op">*</span> <span class="fl">10</span><span class="op">)</span>, <span class="fl">500</span>, <span class="fl">10</span><span class="op">)</span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/sparse_matmul_dense.html">sparse_matmul_dense</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">dense</span><span class="op">)</span></span></code></pre></div>
+<p>Row and column names remain attached to the sparse object and are restored by <code><a href="reference/to_dgCMatrix.html">to_dgCMatrix()</a></code>. Sparse-dense multiplication verifies labels on the contracted dimension when both inputs provide them, then carries sparse row names and dense output column names into the result.</p>
 </div>
 <div class="section level2">
 <h2 id="backend-note">Backend note<a class="anchor" aria-label="anchor" href="#backend-note"></a>

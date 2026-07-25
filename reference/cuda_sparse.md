@@ -36,8 +36,9 @@ cuda_sparse(
 
 A `cudasparse` list. Stable public metadata include one-based COO `i`
 and `j`, numeric `values`, zero-based CSR `row_ptr` and `col_index`,
-integer `shape`, logical `format`, actual `device`, and `backend`.
-`storage` is backend-internal and should not be accessed directly.
+integer `shape`, matrix `dimnames`, logical `format`, actual `device`,
+and `backend`. `storage` is backend-internal and should not be accessed
+directly.
 
 ## Examples
 

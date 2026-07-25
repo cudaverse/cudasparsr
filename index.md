@@ -12,6 +12,8 @@ data.
 - Sparse matrix-vector multiplication.
 - Sparse-by-dense matrix multiplication.
 - Row and column sums.
+- Preservation of row and column identifiers through COO/CSR conversion,
+  `Matrix` round-trips, sparse products, and reductions.
 - Transparent CPU backend for development and CI.
 - Optional CUDA COO multiplication through the public R torch sparse
   API.
@@ -41,6 +43,13 @@ sparse_col_sums(x)
 dense <- matrix(rnorm(500 * 10), 500, 10)
 result <- sparse_matmul_dense(x, dense)
 ```
+
+Row and column names remain attached to the sparse object and are
+restored by
+[`to_dgCMatrix()`](https://cudaverse.github.io/cudasparsr/reference/to_dgCMatrix.md).
+Sparse-dense multiplication verifies labels on the contracted dimension
+when both inputs provide them, then carries sparse row names and dense
+output column names into the result.
 
 ## Backend note
 
