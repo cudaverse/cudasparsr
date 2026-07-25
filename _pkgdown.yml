@@ -1,0 +1,17 @@
+url: https://cudaverse.github.io/cudasparsr/
+
+template:
+  bootstrap: 5
+
+reference:
+- title: Create, convert, and inspect sparse matrices
+  contents:
+  - cuda_sparse
+  - sparse_info
+  - as_coo
+  - to_dgCMatrix
+- title: Sparse operations
+  contents:
+  - sparse_matvec
+  - sparse_matmul_dense
+  - sparse_row_sums

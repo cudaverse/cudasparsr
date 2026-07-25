@@ -1,6 +1,6 @@
 Package: cudasparsr
 Title: GPU-Aware Sparse Matrices for R
-Version: 0.1.0
+Version: 0.1.1
 Authors@R:
     person("Yaoxiang", "Li", email = "liyaoxiang@outlook.com",
            role = c("aut", "cre"))
@@ -10,12 +10,13 @@ Description: Provides an experimental sparse matrix abstraction for R with
     row and column reductions. Uses an optional CUDA-enabled 'torch' backend
     for sparse multiplication and a portable 'Matrix' backend for testing.
 License: MIT + file LICENSE
-URL: https://github.com/cudaverse/cudasparsr
+URL: https://cudaverse.github.io/cudasparsr/,
+    https://github.com/cudaverse/cudasparsr
 BugReports: https://github.com/cudaverse/cudasparsr/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Imports:
-    cudatensr,
+    cudatensr (>= 0.1.1),
     Matrix,
     methods
 Remotes:

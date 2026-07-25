@@ -10,7 +10,8 @@ sparse_info(x)
 \item{x}{A \code{cudasparse} matrix.}
 }
 \value{
-A named list.
+A named list containing \code{shape}, \code{nnz}, \code{density}, \code{format},
+actual \code{device}, and \code{backend}.
 }
 \description{
 Inspect sparse matrix metadata

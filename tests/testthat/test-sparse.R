@@ -41,8 +41,23 @@ test_that("sparse reductions match Matrix", {
 test_that("invalid inputs fail clearly", {
   expect_error(cuda_sparse(matrix(c(1, NA), 1), device = "cpu"), "finite")
   expect_error(cuda_sparse(letters[1:3], device = "cpu"), "matrix")
+  expect_error(
+    cuda_sparse(diag(2), device = "cpu", drop_zeros = NA),
+    "TRUE or FALSE"
+  )
 
   x <- cuda_sparse(diag(3), device = "cpu")
   expect_error(sparse_matvec(x, 1:2), "one value per column")
   expect_error(sparse_matmul_dense(x, matrix(1:8, 4)), "not conformable")
+})
+
+test_that("large sparse printing avoids materializing all entries", {
+  x <- cuda_sparse(diag(5), device = "cpu")
+  old_options <- options(cudasparsr.max_print = 3)
+  on.exit(options(old_options), add = TRUE)
+
+  output <- capture.output(print(x))
+
+  expect_true(any(grepl("stored values omitted", output)))
+  expect_false(any(grepl("5 x 5 sparse Matrix", output, fixed = TRUE)))
 })

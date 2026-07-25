@@ -43,7 +43,10 @@
 #' @param device One of `"auto"`, `"cuda"`, or `"cpu"`.
 #' @param drop_zeros Whether to remove explicitly stored zeros.
 #'
-#' @return A `cudasparse` object.
+#' @return A `cudasparse` list. Stable public metadata include one-based COO
+#'   `i` and `j`, numeric `values`, zero-based CSR `row_ptr` and `col_index`,
+#'   integer `shape`, logical `format`, actual `device`, and `backend`.
+#'   `storage` is backend-internal and should not be accessed directly.
 #' @export
 #' @examples
 #' library(Matrix)
@@ -54,6 +57,10 @@ cuda_sparse <- function(x, format = c("csr", "coo"),
                         drop_zeros = TRUE) {
   format <- match.arg(format)
   device <- match.arg(device)
+  if (!is.logical(drop_zeros) || length(drop_zeros) != 1L ||
+      is.na(drop_zeros)) {
+    stop("`drop_zeros` must be TRUE or FALSE.", call. = FALSE)
+  }
   if (inherits(x, "cudasparse")) {
     if (device == "auto") {
       device <- if (cudatensr::cuda_available()) "cuda" else "cpu"
@@ -137,7 +144,8 @@ cuda_sparse <- function(x, format = c("csr", "coo"),
 #' Inspect sparse matrix metadata
 #'
 #' @param x A `cudasparse` matrix.
-#' @return A named list.
+#' @return A named list containing `shape`, `nnz`, `density`, `format`,
+#'   actual `device`, and `backend`.
 #' @export
 #' @examples
 #' sparse_info(cuda_sparse(diag(3), device = "cpu"))
@@ -285,6 +293,20 @@ print.cudasparse <- function(x, ...) {
     info$shape[[1]], info$shape[[2]], info$nnz,
     info$format, info$device, info$backend
   ))
-  print(to_dgCMatrix(x), ...)
+  max_values <- getOption("cudasparsr.max_print", 100L)
+  if (!is.numeric(max_values) || length(max_values) != 1L ||
+      is.na(max_values) || !is.finite(max_values) || max_values < 0) {
+    max_values <- 100L
+  }
+  if (info$nnz <= max_values) {
+    print(to_dgCMatrix(x), ...)
+  } else {
+    cat(
+      sprintf(
+        "<%s stored values omitted; use `to_dgCMatrix()` to materialize>\n",
+        format(info$nnz, big.mark = ",", scientific = FALSE)
+      )
+    )
+  }
   invisible(x)
 }

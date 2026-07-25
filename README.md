@@ -46,6 +46,15 @@ format is recorded as CSR. CSR metadata are still exposed for future native
 cuSPARSE integration. In this first release, dense products are returned to the
 CPU after CUDA computation.
 
+Printing objects with more than 100 stored values shows only metadata, avoiding
+an unexpected full sparse-matrix materialization. Use `to_dgCMatrix(x)` when
+you need the complete R `Matrix`, or change the display threshold with
+`options(cudasparsr.max_print = 500)`.
+
+For installation, device verification, memory advice, and common failures, see
+the cudaverse
+[GPU setup and troubleshooting guide](https://github.com/cudaverse/.github/blob/main/GPU_SETUP.md).
+
 ## License
 
 MIT © Yaoxiang Li

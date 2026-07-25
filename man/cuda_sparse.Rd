@@ -22,7 +22,10 @@ cuda_sparse(
 \item{drop_zeros}{Whether to remove explicitly stored zeros.}
 }
 \value{
-A \code{cudasparse} object.
+A \code{cudasparse} list. Stable public metadata include one-based COO
+\code{i} and \code{j}, numeric \code{values}, zero-based CSR \code{row_ptr} and \code{col_index},
+integer \code{shape}, logical \code{format}, actual \code{device}, and \code{backend}.
+\code{storage} is backend-internal and should not be accessed directly.
 }
 \description{
 Create a GPU-aware sparse matrix
