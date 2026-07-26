@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">cudasparsr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -32,6 +32,7 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
+<li class="nav-item"><a class="nav-link" href="articles/index.html">Articles</a></li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -93,6 +94,50 @@
 <h2 id="backend-note">Backend note<a class="anchor" aria-label="anchor" href="#backend-note"></a>
 </h2>
 <p>The public R torch API provides a documented COO constructor. CUDA objects therefore use a coalesced torch COO tensor internally even when the logical format is recorded as CSR. CSR metadata are still exposed for future native cuSPARSE integration. In this first release, dense products are returned to the CPU after CUDA computation.</p>
+<p>Use <code><a href="https://cudaverse.github.io/cudatensr/reference/cuda_diagnostics.html" class="external-link">cudatensr::cuda_diagnostics()</a></code> to inspect the runtime and <code><a href="reference/cuda_provenance.html">cuda_provenance()</a></code> to inspect the actual stages. The <a href="https://cudaverse.github.io/cudasparsr/articles/backend-provenance.html">backend and provenance tutorial</a> contains runnable CPU examples, an optional CUDA path, sparse memory and transfer limitations, and the NVIDIA hardware-test contract.</p>
+<table class="table">
+<colgroup>
+<col width="25%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+</colgroup>
+<thead><tr>
+<th>Request</th>
+<th>Sparse storage backend</th>
+<th>Sparse output device</th>
+<th>Fallback</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>"cpu"</code></td>
+<td>Matrix metadata/storage</td>
+<td>CPU</td>
+<td>No</td>
+</tr>
+<tr>
+<td>
+<code>"auto"</code> with usable CUDA</td>
+<td>torch COO</td>
+<td>CUDA</td>
+<td>No</td>
+</tr>
+<tr>
+<td>
+<code>"auto"</code> without usable CUDA</td>
+<td>Matrix</td>
+<td>CPU</td>
+<td>Yes, recorded with the reason</td>
+</tr>
+<tr>
+<td><code>"cuda"</code></td>
+<td>torch COO, or a strict error</td>
+<td>CUDA when successful</td>
+<td>Never silently</td>
+</tr>
+</tbody>
+</table>
+<p>This table describes <code><a href="reference/cuda_sparse.html">cuda_sparse()</a></code> construction. CUDA sparse-dense multiplication currently returns its dense result to CPU, and row/column reductions are fixed-CPU Matrix stages. Consult <code><a href="reference/cuda_provenance.html">cuda_provenance()</a></code> instead of inferring an end-to-end backend from the input object.</p>
 <p>Printing objects with more than 100 stored values shows only metadata, avoiding an unexpected full sparse-matrix materialization. Use <code>to_dgCMatrix(x)</code> when you need the complete R <code>Matrix</code>, or change the display threshold with <code>options(cudasparsr.max_print = 500)</code>.</p>
 <p>For installation, device verification, memory advice, and common failures, see the cudaverse <a href="https://github.com/cudaverse/.github/blob/main/GPU_SETUP.md" class="external-link">GPU setup and troubleshooting guide</a>.</p>
 </div>

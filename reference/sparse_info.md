@@ -41,4 +41,10 @@ sparse_info(cuda_sparse(diag(3), device = "cpu"))
 #> $backend
 #> [1] "Matrix"
 #> 
+#> $provenance_schema
+#> [1] "cudaverse-stage/1"
+#> 
+#> $compute_device
+#> [1] "cpu"
+#> 
 ```

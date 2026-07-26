@@ -59,6 +59,30 @@ the logical format is recorded as CSR. CSR metadata are still exposed
 for future native cuSPARSE integration. In this first release, dense
 products are returned to the CPU after CUDA computation.
 
+Use
+[`cudatensr::cuda_diagnostics()`](https://cudaverse.github.io/cudatensr/reference/cuda_diagnostics.html)
+to inspect the runtime and
+[`cuda_provenance()`](https://cudaverse.github.io/cudasparsr/reference/cuda_provenance.md)
+to inspect the actual stages. The [backend and provenance
+tutorial](https://cudaverse.github.io/cudasparsr/articles/backend-provenance.html)
+contains runnable CPU examples, an optional CUDA path, sparse memory and
+transfer limitations, and the NVIDIA hardware-test contract.
+
+| Request | Sparse storage backend | Sparse output device | Fallback |
+|----|----|----|----|
+| `"cpu"` | Matrix metadata/storage | CPU | No |
+| `"auto"` with usable CUDA | torch COO | CUDA | No |
+| `"auto"` without usable CUDA | Matrix | CPU | Yes, recorded with the reason |
+| `"cuda"` | torch COO, or a strict error | CUDA when successful | Never silently |
+
+This table describes
+[`cuda_sparse()`](https://cudaverse.github.io/cudasparsr/reference/cuda_sparse.md)
+construction. CUDA sparse-dense multiplication currently returns its
+dense result to CPU, and row/column reductions are fixed-CPU Matrix
+stages. Consult
+[`cuda_provenance()`](https://cudaverse.github.io/cudasparsr/reference/cuda_provenance.md)
+instead of inferring an end-to-end backend from the input object.
+
 Printing objects with more than 100 stored values shows only metadata,
 avoiding an unexpected full sparse-matrix materialization. Use
 `to_dgCMatrix(x)` when you need the complete R `Matrix`, or change the
@@ -78,6 +102,8 @@ MIT © Yaoxiang Li
 
 - [`cuda_sparse()`](https://cudaverse.github.io/cudasparsr/reference/cuda_sparse.md)
   : Create a GPU-aware sparse matrix
+- [`cuda_provenance()`](https://cudaverse.github.io/cudasparsr/reference/cuda_provenance.md)
+  : Inspect actual compute provenance
 - [`sparse_info()`](https://cudaverse.github.io/cudasparsr/reference/sparse_info.md)
   : Inspect sparse matrix metadata
 - [`dimnames(`*`<cudasparse>`*`)`](https://cudaverse.github.io/cudasparsr/reference/dimnames.cudasparse.md)
@@ -98,3 +124,9 @@ MIT © Yaoxiang Li
   [`sparse_col_sums()`](https://cudaverse.github.io/cudasparsr/reference/sparse_row_sums.md)
   : Sparse row and column reductions
 
+# Articles
+
+### Guides
+
+- [Sparse backends and compute
+  provenance](https://cudaverse.github.io/cudasparsr/articles/backend-provenance.md):
