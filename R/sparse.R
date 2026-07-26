@@ -41,17 +41,9 @@
   )
 }
 
-#' Inspect actual compute provenance
-#'
-#' This is the shared [cudatensr::cuda_provenance()] inspector, re-exposed for
-#' sparse results.
-#'
-#' @param x A cudaverse result or named list of compute stages.
-#' @return A `cuda_provenance` data frame.
+#' @importFrom cudatensr cuda_provenance
 #' @export
-cuda_provenance <- function(x) {
-  cudatensr::cuda_provenance(x)
-}
+cudatensr::cuda_provenance
 
 .validate_sparse_dimnames <- function(value, shape, argument = "dimnames") {
   if (is.null(value)) {

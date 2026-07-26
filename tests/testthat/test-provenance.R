@@ -23,6 +23,11 @@ test_that("existing sparse objects honor a new drop_zeros request", {
   expect_equal(as.matrix(to_dgCMatrix(dropped)), as.matrix(source))
 })
 
+test_that("provenance inspection re-exports the canonical generic", {
+  expect_identical(cuda_provenance, cudatensr::cuda_provenance)
+  expect_true(utils::isS3stdGeneric(cuda_provenance))
+})
+
 test_that("sparse construction exposes the shared provenance contract", {
   x <- cuda_sparse(diag(3), device = "cpu")
   provenance <- cuda_provenance(x)
