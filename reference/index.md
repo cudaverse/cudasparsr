@@ -4,8 +4,9 @@
 
 - [`cuda_sparse()`](https://cudaverse.github.io/cudasparsr/reference/cuda_sparse.md)
   : Create a GPU-aware sparse matrix
-- [`cuda_provenance()`](https://cudaverse.github.io/cudasparsr/reference/cuda_provenance.md)
-  : Inspect actual compute provenance
+- [`reexports`](https://cudaverse.github.io/cudasparsr/reference/reexports.md)
+  [`cuda_provenance`](https://cudaverse.github.io/cudasparsr/reference/reexports.md)
+  : Objects exported from other packages
 - [`sparse_info()`](https://cudaverse.github.io/cudasparsr/reference/sparse_info.md)
   : Inspect sparse matrix metadata
 - [`dimnames(`*`<cudasparse>`*`)`](https://cudaverse.github.io/cudasparsr/reference/dimnames.cudasparse.md)

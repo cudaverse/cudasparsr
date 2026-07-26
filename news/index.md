@@ -2,6 +2,10 @@
 
 ## cudasparsr 0.2.0
 
+- [`cuda_provenance()`](https://cudaverse.github.io/cudatensr/reference/cuda_provenance.html)
+  now re-exports the canonical cudatensr S3 generic instead of wrapping
+  it, so methods registered by other cudaverse packages remain available
+  regardless of package attachment order.
 - Adopted the shared `cudaverse-stage/1` provenance contract for sparse
   construction, materialization, multiplication, matrix-vector products,
   and reductions. CUDA multiplication followed by CPU materialization is

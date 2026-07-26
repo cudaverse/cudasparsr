@@ -11,11 +11,6 @@ CPU; its CUDA section is optional.
 
 library(cudatensr)
 library(cudasparsr)
-#> 
-#> Attaching package: 'cudasparsr'
-#> The following object is masked from 'package:cudatensr':
-#> 
-#>     cuda_provenance
 library(Matrix)
 
 diagnostics <- cuda_diagnostics()

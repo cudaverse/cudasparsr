@@ -62,7 +62,7 @@ products are returned to the CPU after CUDA computation.
 Use
 [`cudatensr::cuda_diagnostics()`](https://cudaverse.github.io/cudatensr/reference/cuda_diagnostics.html)
 to inspect the runtime and
-[`cuda_provenance()`](https://cudaverse.github.io/cudasparsr/reference/cuda_provenance.md)
+[`cuda_provenance()`](https://cudaverse.github.io/cudatensr/reference/cuda_provenance.html)
 to inspect the actual stages. The [backend and provenance
 tutorial](https://cudaverse.github.io/cudasparsr/articles/backend-provenance.html)
 contains runnable CPU examples, an optional CUDA path, sparse memory and
@@ -80,7 +80,7 @@ This table describes
 construction. CUDA sparse-dense multiplication currently returns its
 dense result to CPU, and row/column reductions are fixed-CPU Matrix
 stages. Consult
-[`cuda_provenance()`](https://cudaverse.github.io/cudasparsr/reference/cuda_provenance.md)
+[`cuda_provenance()`](https://cudaverse.github.io/cudatensr/reference/cuda_provenance.html)
 instead of inferring an end-to-end backend from the input object.
 
 Printing objects with more than 100 stored values shows only metadata,

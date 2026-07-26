@@ -35,7 +35,9 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.0" id="cudasparsr-020">cudasparsr 0.2.0<a class="anchor" aria-label="anchor" href="#cudasparsr-020"></a></h2>
-<ul><li>Adopted the shared <code>cudaverse-stage/1</code> provenance contract for sparse construction, materialization, multiplication, matrix-vector products, and reductions. CUDA multiplication followed by CPU materialization is now represented as hybrid execution.</li>
+<ul><li>
+<code><a href="https://cudaverse.github.io/cudatensr/reference/cuda_provenance.html" class="external-link">cuda_provenance()</a></code> now re-exports the canonical cudatensr S3 generic instead of wrapping it, so methods registered by other cudaverse packages remain available regardless of package attachment order.</li>
+<li>Adopted the shared <code>cudaverse-stage/1</code> provenance contract for sparse construction, materialization, multiplication, matrix-vector products, and reductions. CUDA multiplication followed by CPU materialization is now represented as hybrid execution.</li>
 <li>Fixed <code>cuda_sparse(existing, drop_zeros = TRUE)</code> so an otherwise reusable <code>cudasparse</code> object no longer bypasses removal of explicitly stored zeros.</li>
 <li>
 <code><a href="../reference/sparse_info.html">sparse_info()</a></code> now reports the provenance schema and aggregate compute device.</li>
