@@ -59,7 +59,10 @@ test_that("sparse dense multiplication matches Matrix", {
 
   product <- cudatensr::to_cpu(sparse_matmul_dense(x, dense))
   expect_equal(product, as.matrix(source %*% dense))
-  expect_equal(sparse_matvec(x, 1:4), as.vector(source %*% (1:4)))
+  expect_equal(
+    as.numeric(sparse_matvec(x, 1:4)),
+    as.vector(source %*% (1:4))
+  )
 })
 
 test_that("sparse operations preserve compatible row and column labels", {
@@ -110,8 +113,14 @@ test_that("sparse reductions match Matrix", {
   source <- Matrix::rsparsematrix(5, 4, density = 0.4)
   x <- cuda_sparse(source, device = "cpu")
 
-  expect_equal(sparse_row_sums(x), as.numeric(Matrix::rowSums(source)))
-  expect_equal(sparse_col_sums(x), as.numeric(Matrix::colSums(source)))
+  expect_equal(
+    as.numeric(sparse_row_sums(x)),
+    as.numeric(Matrix::rowSums(source))
+  )
+  expect_equal(
+    as.numeric(sparse_col_sums(x)),
+    as.numeric(Matrix::colSums(source))
+  )
 })
 
 test_that("invalid inputs fail clearly", {

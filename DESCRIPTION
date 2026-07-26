@@ -1,6 +1,6 @@
 Package: cudasparsr
 Title: GPU-Aware Sparse Matrices for R
-Version: 0.1.2
+Version: 0.2.0
 Authors@R:
     person("Yaoxiang", "Li", email = "liyaoxiang@outlook.com",
            role = c("aut", "cre"))
@@ -16,13 +16,16 @@ BugReports: https://github.com/cudaverse/cudasparsr/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Imports:
-    cudatensr (>= 0.1.2),
+    cudatensr (>= 0.2.0),
     Matrix,
     methods
 Remotes:
     cudaverse/cudatensr
 Suggests:
+    knitr,
+    rmarkdown,
     testthat (>= 3.0.0),
     torch
+VignetteBuilder: knitr
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.0.0

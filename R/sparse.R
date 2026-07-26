@@ -6,6 +6,53 @@
   invisible(x)
 }
 
+.sparse_provenance <- function(stages) {
+  provenance <- cudatensr::cuda_provenance(stages)
+  list(
+    provenance_schema = attr(provenance, "schema", exact = TRUE),
+    compute_device = attr(provenance, "compute_device", exact = TRUE),
+    compute_stages = attr(provenance, "compute_stages", exact = TRUE)
+  )
+}
+
+.with_sparse_provenance <- function(x, stages) {
+  metadata <- .sparse_provenance(stages)
+  if (is.list(x) && !methods::is(x, "Matrix")) {
+    x$provenance_schema <- metadata$provenance_schema
+    x$compute_device <- metadata$compute_device
+    x$compute_stages <- metadata$compute_stages
+    return(x)
+  }
+  attr(x, "provenance_schema") <- metadata$provenance_schema
+  attr(x, "compute_device") <- metadata$compute_device
+  attr(x, "compute_stages") <- metadata$compute_stages
+  x
+}
+
+.sparse_inherited_stage <- function(device, backend, output_device = device,
+                                    reason = "inherited_device") {
+  cudatensr::cuda_stage(
+    requested_device = "inherited",
+    device = device,
+    backend = backend,
+    selection_reason = reason,
+    fallback = FALSE,
+    output_device = output_device
+  )
+}
+
+#' Inspect actual compute provenance
+#'
+#' This is the shared [cudatensr::cuda_provenance()] inspector, re-exposed for
+#' sparse results.
+#'
+#' @param x A cudaverse result or named list of compute stages.
+#' @return A `cuda_provenance` data frame.
+#' @export
+cuda_provenance <- function(x) {
+  cudatensr::cuda_provenance(x)
+}
+
 .validate_sparse_dimnames <- function(value, shape, argument = "dimnames") {
   if (is.null(value)) {
     return(NULL)
@@ -143,17 +190,19 @@ cuda_sparse <- function(x, format = c("csr", "coo"),
                         device = c("auto", "cuda", "cpu"),
                         drop_zeros = TRUE) {
   format <- match.arg(format)
-  device <- match.arg(device)
+  requested_device <- match.arg(device)
+  selection <- cudatensr::cuda_select_device(requested_device)
+  device <- selection$device
   if (!is.logical(drop_zeros) || length(drop_zeros) != 1L ||
       is.na(drop_zeros)) {
     stop("`drop_zeros` must be TRUE or FALSE.", call. = FALSE)
   }
   if (inherits(x, "cudasparse")) {
     input_dimnames <- .sparse_dimnames(x)
-    if (device == "auto") {
-      device <- if (cudatensr::cuda_available()) "cuda" else "cpu"
-    }
-    if (identical(x$format, format) && identical(x$device, device)) {
+    can_reuse <- identical(x$format, format) &&
+      identical(x$device, device) &&
+      (!isTRUE(drop_zeros) || !any(x$values == 0))
+    if (can_reuse) {
       return(x)
     }
     x <- .triplet_matrix(x)
@@ -174,13 +223,6 @@ cuda_sparse <- function(x, format = c("csr", "coo"),
       "dimnames(x)"
     )
   }
-  if (device == "auto") {
-    device <- if (cudatensr::cuda_available()) "cuda" else "cpu"
-  }
-  if (device == "cuda" && !cudatensr::cuda_available()) {
-    stop("CUDA is unavailable; use `device = \"cpu\"`.", call. = FALSE)
-  }
-
   sparse <- if (methods::is(x, "Matrix")) {
     converted <- tryCatch(
       methods::as(x, "dMatrix"),
@@ -226,7 +268,7 @@ cuda_sparse <- function(x, format = c("csr", "coo"),
   }
   backend <- if (device == "cuda") "torch-coo" else "Matrix"
 
-  structure(
+  result <- structure(
     list(
       i = i,
       j = j,
@@ -241,6 +283,19 @@ cuda_sparse <- function(x, format = c("csr", "coo"),
       storage = storage
     ),
     class = "cudasparse"
+  )
+  .with_sparse_provenance(
+    result,
+    list(
+      sparse_materialization = cudatensr::cuda_stage(
+        requested_device = selection$requested_device,
+        device = selection$device,
+        backend = backend,
+        selection_reason = selection$selection_reason,
+        fallback = selection$fallback,
+        output_device = selection$device
+      )
+    )
   )
 }
 
@@ -260,7 +315,9 @@ sparse_info <- function(x) {
     density = length(x$values) / prod(x$shape),
     format = x$format,
     device = x$device,
-    backend = x$backend
+    backend = x$backend,
+    provenance_schema = x$provenance_schema,
+    compute_device = x$compute_device
   )
 }
 
@@ -307,7 +364,18 @@ as_csr <- function(x) {
 #' to_dgCMatrix(cuda_sparse(diag(3), device = "cpu"))
 to_dgCMatrix <- function(x) {
   .check_sparse(x)
-  methods::as(.triplet_matrix(x), "dgCMatrix")
+  result <- methods::as(.triplet_matrix(x), "dgCMatrix")
+  .with_sparse_provenance(
+    result,
+    list(
+      sparse_materialization = .sparse_inherited_stage(
+        device = "cpu",
+        backend = "Matrix",
+        output_device = "cpu",
+        reason = "explicit_materialization"
+      )
+    )
+  )
 }
 
 #' Sparse matrix by dense matrix multiplication
@@ -322,7 +390,9 @@ to_dgCMatrix <- function(x) {
 #' sparse_matmul_dense(x, matrix(1:6, 3, 2))
 sparse_matmul_dense <- function(x, y) {
   .check_sparse(x)
+  y_device <- "cpu"
   if (inherits(y, "cudatensor")) {
+    y_device <- y$device
     y_shape <- cudatensr::tensor_shape(y)
     y_cpu <- cudatensr::to_cpu(y)
   } else {
@@ -358,7 +428,34 @@ sparse_matmul_dense <- function(x, y) {
   }
   dim(result) <- c(x$shape[[1]], y_shape[[2]])
   dimnames(result) <- result_dimnames
-  cudatensr::cuda_tensor(result, device = "cpu", dtype = "float64")
+  output <- cudatensr::cuda_tensor(
+    result,
+    device = "cpu",
+    dtype = "float64"
+  )
+  stages <- list()
+  if (identical(y_device, "cuda")) {
+    stages$dense_input_materialization <- .sparse_inherited_stage(
+      device = "cpu",
+      backend = "base",
+      output_device = "cpu",
+      reason = "input_transfer"
+    )
+  }
+  stages$sparse_multiply <- .sparse_inherited_stage(
+    device = x$device,
+    backend = x$backend,
+    output_device = if (identical(x$device, "cuda")) "cuda" else "cpu"
+  )
+  if (identical(x$device, "cuda")) {
+    stages$result_materialization <- .sparse_inherited_stage(
+      device = "cpu",
+      backend = "base",
+      output_device = "cpu",
+      reason = "output_transfer"
+    )
+  }
+  .with_sparse_provenance(output, stages)
 }
 
 #' Sparse matrix-vector multiplication
@@ -381,12 +478,18 @@ sparse_matvec <- function(x, y) {
     ncol = 1L,
     dimnames = list(names(y), NULL)
   )
-  result <- as.vector(cudatensr::to_cpu(sparse_matmul_dense(x, dense)))
+  product <- sparse_matmul_dense(x, dense)
+  result <- as.vector(cudatensr::to_cpu(product))
+  product_stages <- attr(
+    cudatensr::cuda_provenance(product),
+    "compute_stages",
+    exact = TRUE
+  )
   sparse_dimnames <- .sparse_dimnames(x)
   if (!is.null(sparse_dimnames) && !is.null(sparse_dimnames[[1L]])) {
     names(result) <- sparse_dimnames[[1L]]
   }
-  result
+  .with_sparse_provenance(result, product_stages)
 }
 
 #' Sparse row and column reductions
@@ -405,7 +508,23 @@ sparse_row_sums <- function(x) {
   if (!is.null(sparse_dimnames) && !is.null(sparse_dimnames[[1L]])) {
     names(result) <- sparse_dimnames[[1L]]
   }
-  result
+  stages <- list()
+  if (identical(x$device, "cuda")) {
+    stages$source_materialization <- .sparse_inherited_stage(
+      device = "cpu",
+      backend = "Matrix",
+      output_device = "cpu",
+      reason = "metadata_materialization"
+    )
+  }
+  stages$row_reduction <- cudatensr::cuda_stage(
+    requested_device = "fixed-cpu",
+    device = "cpu",
+    backend = "Matrix",
+    selection_reason = "algorithm_cpu_only",
+    output_device = "cpu"
+  )
+  .with_sparse_provenance(result, stages)
 }
 
 #' @rdname sparse_row_sums
@@ -417,7 +536,23 @@ sparse_col_sums <- function(x) {
   if (!is.null(sparse_dimnames) && !is.null(sparse_dimnames[[2L]])) {
     names(result) <- sparse_dimnames[[2L]]
   }
-  result
+  stages <- list()
+  if (identical(x$device, "cuda")) {
+    stages$source_materialization <- .sparse_inherited_stage(
+      device = "cpu",
+      backend = "Matrix",
+      output_device = "cpu",
+      reason = "metadata_materialization"
+    )
+  }
+  stages$column_reduction <- cudatensr::cuda_stage(
+    requested_device = "fixed-cpu",
+    device = "cpu",
+    backend = "Matrix",
+    selection_reason = "algorithm_cpu_only",
+    output_device = "cpu"
+  )
+  .with_sparse_provenance(result, stages)
 }
 
 #' @export

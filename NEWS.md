@@ -1,3 +1,14 @@
+# cudasparsr 0.2.0
+
+- Adopted the shared `cudaverse-stage/1` provenance contract for sparse
+  construction, materialization, multiplication, matrix-vector products, and
+  reductions. CUDA multiplication followed by CPU materialization is now
+  represented as hybrid execution.
+- Fixed `cuda_sparse(existing, drop_zeros = TRUE)` so an otherwise reusable
+  `cudasparse` object no longer bypasses removal of explicitly stored zeros.
+- `sparse_info()` now reports the provenance schema and aggregate compute
+  device.
+
 # cudasparsr 0.1.2
 
 - Sparse row and column names are now retained across construction, format

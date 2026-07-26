@@ -3,10 +3,16 @@ url: https://cudaverse.github.io/cudasparsr/
 template:
   bootstrap: 5
 
+articles:
+- title: Guides
+  contents:
+  - backend-provenance
+
 reference:
 - title: Create, convert, and inspect sparse matrices
   contents:
   - cuda_sparse
+  - cuda_provenance
   - sparse_info
   - dimnames.cudasparse
   - as_coo
