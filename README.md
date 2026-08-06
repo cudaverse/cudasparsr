@@ -1,5 +1,11 @@
 # cudasparsr
 
+> **Archived:** This package has been incorporated into
+> [`cudaverse`](https://github.com/cudaverse/cudaverse). Install and load
+> `cudaverse`, then continue using the same sparse-matrix functions. This
+> repository remains available as development history and receives no new
+> features or releases.
+
 `cudasparsr` is the sparse matrix foundation of the **cudaverse**, designed
 around R's `Matrix` ecosystem and single-cell-scale sparse data.
 
